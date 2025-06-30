@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+soundfile
+pydub
+noisereduce
+gTTS
+spleeter
+ffmpeg-python
+python-multipart

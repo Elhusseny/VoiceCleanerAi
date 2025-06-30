@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Voice Cleaner AI</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      text-align: center;
+    }
+    input[type="file"], textarea, button {
+      margin: 10px 0;
+      width: 100%;
+      padding: 10px;
+    }
+    audio {
+      margin-top: 15px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎙️ Voice Cleaner AI</h1>
+
+  <input type="file" id="audioFile" accept="audio/*" />
+  
+  <textarea id="cloneText" placeholder="اكتب النص اللي تحب يتحول بصوتك..." rows="3"></textarea>
+
+  <button onclick="sendRequest('/api/denoise')">🧹 إزالة الضوضاء</button>
+  <button onclick="sendRequest('/api/separate')">🎵 فصل الموسيقى</button>
+  <button onclick="sendRequest('/api/clone')">🧠 صوتك الاصطناعي</button>
+
+  <div id="result"></div>
+
+  <script>
+    async function sendRequest(endpoint) {
+      const fileInput = document.getElementById("audioFile");
+      const textInput = document.getElementById("cloneText");
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = "⏳ جاري المعالجة...";
+
+      if (!fileInput.files[0]) {
+        resultDiv.innerHTML = "❌ من فضلك اختر ملف صوتي أولاً.";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("audio", fileInput.files[0]);
+      if (endpoint === "/api/clone") {
+        if (!textInput.value) {
+          resultDiv.innerHTML = "❌ من فضلك اكتب نص ليتم تحويله لصوتك.";
+          return;
+        }
+        formData.append("text", textInput.value);
+      }
+
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+
+        let audioUrl = "";
+        if (data.cleanedAudioUrl) {
+          audioUrl = data.cleanedAudioUrl;
+          resultDiv.innerHTML = `<h3>✅ تمت إزالة الضوضاء</h3><audio controls src="${audioUrl}"></audio><br><a href="${audioUrl}" download>⬇️ تحميل</a>`;
+        } else if (data.vocalsUrl && data.musicUrl) {
+          resultDiv.innerHTML = `
+            <h3>🎤 الصوت:</h3>
+            <audio controls src="${data.vocalsUrl}"></audio><br><a href="${data.vocalsUrl}" download>⬇️ تحميل الصوت</a>
+            <h3>🎶 الموسيقى:</h3>
+            <audio controls src="${data.musicUrl}"></audio><br><a href="${data.musicUrl}" download>⬇️ تحميل الموسيقى</a>
+          `;
+        } else if (data.clonedVoiceUrl) {
+          audioUrl = data.clonedVoiceUrl;
+          resultDiv.innerHTML = `<h3>🧠 الصوت الاصطناعي:</h3><audio controls src="${audioUrl}"></audio><br><a href="${audioUrl}" download>⬇️ تحميل</a>`;
+        } else {
+          resultDiv.innerHTML = "❌ حصلت مشكلة، حاول مرة تانية.";
+        }
+      } catch (err) {
+        resultDiv.innerHTML = "❌ فشل الاتصال بالسيرفر.";
+        console.error(err);
+      }
+    }
+  </script>
+</body>
+</html>
